@@ -5,7 +5,8 @@
 			"DisplayName": "Your user identifier",
 			"Required": true,
 			"UserClaims": [
-				"sub"
+				"sub",
+				"role"
 			]
 		},
 		{
@@ -26,7 +27,8 @@
 				"birthdate",
 				"zoneinfo",
 				"locale",
-				"updated_at"
+				"updated_at",
+				"role"
 			]
 		}
 	],
@@ -34,10 +36,8 @@
 		{
 			"Name": "api1",
 			"DisplayName": "My API #1",
-			"Scopes": [
-				{
-					"Name": "api1"
-				}
+			"UserClaims": [
+				"role"
 			]
 		}
 	],

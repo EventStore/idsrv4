@@ -27,6 +27,10 @@ FROM mcr.microsoft.com/dotnet/core/runtime-deps:3.1-alpine AS runtime
 ARG UID=1000
 ARG GID=1000
 
+ENV ASPNETCORE_ENVIRONMENT=Development
+
+RUN mkdir /etc/idsrv4 && touch /etc/idsrv4/idsrv4.conf && touch /etc/idsrv4/users.conf
+
 WORKDIR /opt/idsrv4
 
 RUN addgroup --gid ${GID} "idsrv4" && \

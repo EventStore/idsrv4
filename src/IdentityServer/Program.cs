@@ -48,7 +48,7 @@ namespace IdentityServer {
 		public static IHostBuilder CreateHostBuilder(string[] args) =>
 			new HostBuilder()
 				.ConfigureHostConfiguration(builder => builder
-					.AddJsonFile("/etc/idsrv4.conf", true)
+					.AddJsonFile("/etc/idsrv4/idsrv4.conf", true)
 					.AddEnvironmentVariables("DOTNET_")
 					.AddCommandLine(args ?? Array.Empty<string>()))
 				.ConfigureLogging(builder => builder
