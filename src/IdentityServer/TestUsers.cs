@@ -15,7 +15,7 @@ namespace IdentityServer {
 				return new List<TestUser>();
 			}
 
-			using var fileStream = usersFile.Open(FileMode.Open);
+			using var fileStream = usersFile.Open(FileMode.Open, FileAccess.Read);
 			using var memoryStream = new MemoryStream();
 			fileStream.CopyTo(memoryStream);
 

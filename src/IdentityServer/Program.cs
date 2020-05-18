@@ -9,8 +9,11 @@ using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
 using System;
 using System.Net;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 
 namespace IdentityServer {
@@ -44,8 +47,7 @@ namespace IdentityServer {
 			}
 		}
 
-
-		public static IHostBuilder CreateHostBuilder(string[] args) =>
+		private static IHostBuilder CreateHostBuilder(string[] args) =>
 			new HostBuilder()
 				.ConfigureHostConfiguration(builder => builder
 					.AddJsonFile("/etc/idsrv4/idsrv4.conf", true)
@@ -55,6 +57,24 @@ namespace IdentityServer {
 					.AddSerilog())
 				.ConfigureWebHostDefaults(builder => builder
 					.UseStartup<Startup>()
-					.UseKestrel(options => options.Listen(IPAddress.Any, 5000)));
+					.UseKestrel(ConfigureKestrel));
+
+		private static void ConfigureKestrel(KestrelServerOptions kestrel) {
+			kestrel.Listen(IPAddress.Any, 5000);
+			kestrel.Listen(IPAddress.Any, 5001, options => options.UseHttps(CreateSelfSignedCertificate()));
+		}
+
+		private static X509Certificate2 CreateSelfSignedCertificate() {
+			using var rsa = RSA.Create();
+			var certificateRequest =
+				new CertificateRequest("cn=https://localhost:5001", rsa, HashAlgorithmName.SHA512,
+					RSASignaturePadding.Pkcs1) {
+					CertificateExtensions = {
+						new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
+					}
+				};
+
+			return certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(1));
+		}
 	}
 }

@@ -2,26 +2,24 @@ FROM mcr.microsoft.com/dotnet/core/sdk:3.1-alpine AS build
 
 WORKDIR /build
 
-COPY ./IdentityServer.sln ./src/*/*.csproj ./
-
-RUN for file in $(ls *.csproj); do mkdir -p ./src/${file%.*}/ && mv $file ./src/${file%.*}/; done
+# https://github.com/moby/moby/issues/15858
+# Docker will flatten out the file structure on COPY
+# We don't want to specify each csproj either - it creates pointless layers and it looks ugly
+# https://code-maze.com/aspnetcore-app-dockerfiles/
+COPY ./*.sln ./
+COPY ./src/*/*.csproj ./src/
+RUN for file in $(ls src/*.csproj); do mkdir -p ./${file%.*}/ && mv $file ./${file%.*}/; done
 
 RUN dotnet restore --runtime=linux-musl-x64
 
-WORKDIR /build/src
+COPY . .
 
-COPY ./src .
-
-WORKDIR /build
-
-RUN dotnet build --configuration=Release --runtime=linux-musl-x64 --no-restore --framework=netcoreapp3.1
+RUN dotnet build --configuration=Release --runtime=linux-musl-x64 --framework=netcoreapp3.1
 
 FROM build as publish
 
-#RUN dotnet dev-certs https --export-path ./src/IdentityServer/idsrv4.pfx
-
 RUN dotnet publish --configuration=Release --runtime=linux-musl-x64 --self-contained \
-     --framework=netcoreapp3.1 --output /publish /p:PublishTrimmed=true src/IdentityServer
+     --framework=netcoreapp3.1 --output /publish /p:PublishTrimmed=true
 
 FROM mcr.microsoft.com/dotnet/core/runtime-deps:3.1-alpine AS runtime
 ARG UID=1000
