@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+    - master
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    name: ci/github/build
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Docker Push CI
+      uses: jen20/action-docker-build@v1
+      if: github.event_name == 'push'
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        repository: docker.pkg.github.com/eventstore/idsrv4/idsrv4
+        tag-latest: true
+        registry: https://docker.pkg.github.com
