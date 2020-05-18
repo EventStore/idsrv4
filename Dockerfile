@@ -46,4 +46,8 @@ RUN chown -R idsrv4:idsrv4 /opt/idsrv4
 
 USER idsrv4
 
+EXPOSE 5000/tcp
+EXPOSE 5001/tcp
+
+
 ENTRYPOINT ["/opt/idsrv4/IdentityServer"]
