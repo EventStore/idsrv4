@@ -27,7 +27,7 @@ ARG GID=1000
 
 ENV ASPNETCORE_ENVIRONMENT=Development
 
-RUN mkdir /etc/idsrv4 && touch /etc/idsrv4/idsrv4.conf && touch /etc/idsrv4/users.conf
+RUN mkdir /etc/idsrv4
 
 WORKDIR /opt/idsrv4
 
