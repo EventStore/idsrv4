@@ -1,80 +1,77 @@
-﻿// Copyright (c) Brock Allen & Dominick Baier. All rights reserved.
-// Licensed under the Apache License, Version 2.0. See LICENSE in the project root for license information.
-
-
+using System;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using IdentityServer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
-using System;
-using System.Net;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Configuration;
 
-namespace IdentityServer {
-	public class Program {
-		public static async Task<int> Main(string[] args) {
-			var cts = new CancellationTokenSource();
+Log.Logger = new LoggerConfiguration()
+	.MinimumLevel.Verbose()
+	.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+	.MinimumLevel.Override("System", LogEventLevel.Warning)
+	.MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Information)
+	.Enrich.FromLogContext()
+	.WriteTo.Console(
+		outputTemplate:
+		"[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}",
+		theme: AnsiConsoleTheme.Literate)
+	.CreateLogger();
 
-			Log.Logger = new LoggerConfiguration()
-				.MinimumLevel.Verbose()
-				.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-				.MinimumLevel.Override("System", LogEventLevel.Warning)
-				.MinimumLevel.Override("Microsoft.AspNetCore.Authentication", LogEventLevel.Information)
-				.Enrich.FromLogContext()
-				.WriteTo.Console(
-					outputTemplate:
-					"[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}",
-					theme: AnsiConsoleTheme.Literate)
-				.CreateLogger();
+using var cert = CreateSelfSignedCertificate();
 
-			try {
-				Log.Information("Starting host...");
-				await CreateHostBuilder(args)
-					.RunConsoleAsync(options => options.SuppressStatusMessages = true, cts.Token);
 
-				return 0;
-			} catch (Exception ex) {
-				Log.Fatal(ex, "Host terminated unexpectedly.");
-				return 1;
-			} finally {
-				Log.CloseAndFlush();
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddSerilog(Log.Logger);
+
+builder.Host
+	.ConfigureHostConfiguration(config => config
+		.AddJsonFile("/etc/idsrv4/idsrv4.conf", false)
+		.AddEnvironmentVariables("DOTNET_")
+		.AddCommandLine(args));
+
+builder.WebHost.ConfigureKestrel(kestrel => kestrel.ConfigureHttpsDefaults(https => https.ServerCertificate = cert));
+
+builder.Services
+	.AddControllersWithViews().Services
+	.AddIdentityServer(options => {
+		options.Events.RaiseErrorEvents = true;
+		options.Events.RaiseInformationEvents = true;
+		options.Events.RaiseFailureEvents = true;
+		options.Events.RaiseSuccessEvents = true;
+	})
+	.AddTestUsers(TestUsers.FromFile())
+	.AddInMemoryIdentityResources(builder.Configuration.GetSection("IdentityResources"))
+	.AddInMemoryApiResources(builder.Configuration.GetSection("ApiResources"))
+	.AddInMemoryClients(builder.Configuration.GetSection("Clients"))
+	.AddDeveloperSigningCredential().Services
+	.AddAuthentication();
+
+await using var app = builder.Build();
+
+app
+	.UseDeveloperExceptionPage()
+	.UseStaticFiles()
+	.UseRouting()
+	.UseIdentityServer()
+	.UseAuthorization()
+	.UseEndpoints(endpoints => endpoints.MapDefaultControllerRoute());
+
+app.Run();
+
+X509Certificate2 CreateSelfSignedCertificate() {
+	using var rsa = RSA.Create();
+	var certificateRequest =
+		new CertificateRequest("cn=localhost", rsa, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1) {
+			CertificateExtensions = {
+				new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
 			}
-		}
-
-		private static IHostBuilder CreateHostBuilder(string[] args) =>
-			new HostBuilder()
-				.ConfigureHostConfiguration(builder => builder
-					.AddJsonFile("/etc/idsrv4/idsrv4.conf", false)
-					.AddEnvironmentVariables("DOTNET_")
-					.AddCommandLine(args ?? Array.Empty<string>()))
-				.ConfigureLogging(builder => builder
-					.AddSerilog())
-				.ConfigureWebHostDefaults(builder => builder
-					.UseStartup<Startup>()
-					.UseKestrel(ConfigureKestrel));
-
-		private static void ConfigureKestrel(KestrelServerOptions kestrel) {
-			kestrel.Listen(IPAddress.Any, 5000);
-			kestrel.Listen(IPAddress.Any, 5001, options => options.UseHttps(CreateSelfSignedCertificate()));
-		}
-
-		private static X509Certificate2 CreateSelfSignedCertificate() {
-			using var rsa = RSA.Create();
-			var certificateRequest =
-				new CertificateRequest("cn=https://localhost:5001", rsa, HashAlgorithmName.SHA512,
-					RSASignaturePadding.Pkcs1) {
-					CertificateExtensions = {
-						new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
-					}
-				};
-
-			return certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(1));
-		}
-	}
+		};
+	return certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(1));
 }
