@@ -68,10 +68,6 @@ app.Run();
 X509Certificate2 CreateSelfSignedCertificate() {
 	using var rsa = RSA.Create();
 	var certificateRequest =
-		new CertificateRequest("cn=localhost", rsa, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1) {
-			CertificateExtensions = {
-				new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true)
-			}
-		};
+		new CertificateRequest("cn=localhost", rsa, HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
 	return certificateRequest.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(1));
 }
