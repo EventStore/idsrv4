@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Logging;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -23,8 +23,9 @@ Log.Logger = new LoggerConfiguration()
 		theme: AnsiConsoleTheme.Literate)
 	.CreateLogger();
 
-using var cert = CreateSelfSignedCertificate();
+IdentityModelEventSource.ShowPII = true;
 
+using var cert = CreateSelfSignedCertificate();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,13 +46,18 @@ builder.Services
 		options.Events.RaiseInformationEvents = true;
 		options.Events.RaiseFailureEvents = true;
 		options.Events.RaiseSuccessEvents = true;
+		options.EmitStaticAudienceClaim = true;
 	})
 	.AddTestUsers(TestUsers.FromFile())
 	.AddInMemoryIdentityResources(builder.Configuration.GetSection("IdentityResources"))
 	.AddInMemoryApiResources(builder.Configuration.GetSection("ApiResources"))
 	.AddInMemoryClients(builder.Configuration.GetSection("Clients"))
 	.AddDeveloperSigningCredential().Services
-	.AddAuthentication();
+	.AddAuthentication()
+	.AddIdentityServerAuthentication(options => {
+		options.NameClaimType = "name";
+		options.RoleClaimType = "role";
+	});
 
 await using var app = builder.Build();
 
@@ -59,6 +65,7 @@ app
 	.UseDeveloperExceptionPage()
 	.UseStaticFiles()
 	.UseRouting()
+	.UseCors()
 	.UseIdentityServer()
 	.UseAuthorization()
 	.UseEndpoints(endpoints => endpoints.MapDefaultControllerRoute());

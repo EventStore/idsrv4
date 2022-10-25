@@ -10,56 +10,49 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
-namespace IdentityServer
-{
-    [SecurityHeaders]
-    [AllowAnonymous]
-    public class HomeController : Controller
-    {
-        private readonly IIdentityServerInteractionService _interaction;
-        private readonly IWebHostEnvironment _environment;
-        private readonly ILogger _logger;
+namespace IdentityServerHost.Quickstart.UI {
+	[SecurityHeaders]
+	[AllowAnonymous]
+	public class HomeController : Controller {
+		private readonly IIdentityServerInteractionService _interaction;
+		private readonly IWebHostEnvironment _environment;
+		private readonly ILogger _logger;
 
-        public HomeController(IIdentityServerInteractionService interaction, IWebHostEnvironment environment, ILogger<HomeController> logger)
-        {
-            _interaction = interaction;
-            _environment = environment;
-            _logger = logger;
-        }
+		public HomeController(IIdentityServerInteractionService interaction, IWebHostEnvironment environment,
+			ILogger<HomeController> logger) {
+			_interaction = interaction;
+			_environment = environment;
+			_logger = logger;
+		}
 
-        public IActionResult Index()
-        {
-            if (_environment.IsDevelopment())
-            {
-                // only show in development
-                return View();
-            }
+		public IActionResult Index() {
+			if (_environment.IsDevelopment()) {
+				// only show in development
+				return View();
+			}
 
-            _logger.LogInformation("Homepage is disabled in production. Returning 404.");
-            return NotFound();
-        }
+			_logger.LogInformation("Homepage is disabled in production. Returning 404.");
+			return NotFound();
+		}
 
-        /// <summary>
-        /// Shows the error page
-        /// </summary>
-        public async Task<IActionResult> Error(string errorId)
-        {
-            var vm = new ErrorViewModel();
+		/// <summary>
+		/// Shows the error page
+		/// </summary>
+		public async Task<IActionResult> Error(string errorId) {
+			var vm = new ErrorViewModel();
 
-            // retrieve error details from identityserver
-            var message = await _interaction.GetErrorContextAsync(errorId);
-            if (message != null)
-            {
-                vm.Error = message;
+			// retrieve error details from identityserver
+			var message = await _interaction.GetErrorContextAsync(errorId);
+			if (message != null) {
+				vm.Error = message;
 
-                if (!_environment.IsDevelopment())
-                {
-                    // only show in development
-                    message.ErrorDescription = null;
-                }
-            }
+				if (!_environment.IsDevelopment()) {
+					// only show in development
+					message.ErrorDescription = null;
+				}
+			}
 
-            return View("Error", vm);
-        }
-    }
+			return View("Error", vm);
+		}
+	}
 }
