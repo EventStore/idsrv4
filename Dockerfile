@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:6.0-alpine AS build
 
 WORKDIR /build
 
@@ -14,14 +14,14 @@ RUN dotnet restore --runtime=linux-musl-x64
 
 COPY . .
 
-RUN dotnet build --configuration=Release --runtime=linux-musl-x64 --framework=netcoreapp3.1
+RUN dotnet build --configuration=Release
 
 FROM build as publish
 
 RUN dotnet publish --configuration=Release --runtime=linux-musl-x64 --self-contained \
-     --framework=netcoreapp3.1 --output /publish /p:PublishTrimmed=true
+    --output /publish /p:PublishTrimmed=true
 
-FROM mcr.microsoft.com/dotnet/core/runtime-deps:3.1-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:6.0-alpine AS runtime
 ARG UID=1000
 ARG GID=1000
 
@@ -45,8 +45,5 @@ COPY --from=publish /publish ./
 RUN chown -R idsrv4:idsrv4 /opt/idsrv4
 
 USER idsrv4
-
-EXPOSE 5000/tcp
-EXPOSE 5001/tcp
 
 ENTRYPOINT ["/opt/idsrv4/IdentityServer"]
