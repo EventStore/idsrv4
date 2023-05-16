@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using IdentityServer;
@@ -51,6 +51,7 @@ builder.Services
 	.AddTestUsers(TestUsers.FromFile())
 	.AddInMemoryIdentityResources(builder.Configuration.GetSection("IdentityResources"))
 	.AddInMemoryApiResources(builder.Configuration.GetSection("ApiResources"))
+	.AddInMemoryApiScopes(builder.Configuration.GetSection("ApiScopes"))
 	.AddInMemoryClients(builder.Configuration.GetSection("Clients"))
 	.AddDeveloperSigningCredential().Services
 	.AddAuthentication()

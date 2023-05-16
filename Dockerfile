@@ -26,6 +26,7 @@ ARG UID=1000
 ARG GID=1000
 
 ENV ASPNETCORE_ENVIRONMENT=Development
+ENV DOTNET_URLS=https://+:5000;https://+:5001
 
 RUN mkdir /etc/idsrv4
 
